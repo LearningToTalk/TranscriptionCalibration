@@ -67,18 +67,69 @@ procedure calibration_filepaths()
 	.audio_dir$ = startup_location.audio_drive$ + "/DataAnalysis/NonWordRep/TimePoint1/Recordings/"
 	.segmentation_dir$ = startup_location.drive$ + "DataAnalysis/NonWordRep/TimePoint1/Segmentation/TranscriptionReady/"
 	.calibSnippetDirectory$ = startup_location.drive$ + "DataAnalysis/NonWordRep/TimePoint1/Transcription/ExtractedSnippets/"
-
+	.transTextGridsDirectory$ = startup_location.drive$ + "DataAnalysis/NonWordRep/TimePoint1/Transcription/TranscriptionTextGrids/"
+	.calibTextGridsDirectory$ = startup_location.drive$ + "DataAnalysis/NonWordRep/TimePoint1/Transcription/CalibrationTextGrids/"
 # appendInfoLine(".audio_dir$: ", .audio_dir$)
 # appendInfoLine(".segmentation_dir$: ", .segmentation_dir$)
 # appendInfoLine(".calibSnippetDirectory$: ", .calibSnippetDirectory$)
+# appendInfoLine("------ calibration_filepaths()")
+# appendInfoLine(".transTextGridsDirectory$: ", .transTextGridsDirectory$)
+# appendInfoLine(".calibTextGridsDirectory$: ", .calibTextGridsDirectory$)
 endproc
 
-# [NODE] Calibration specific start-up procedures.
-procedure startup_calibration_file()
+# [NODE] Calibration textgrid specific start-up procedures.
+procedure startup_calibration_textgrid_file()
+appendInfoLine("")
+appendInfoLine("------ startup_calibration_textgrid_file()")
+
 	# For now, just specify here.  This makes for a potentially brittle specification for .experimental_ID$ below.
 	.task$ = "NonWordRep"
 	lengthPID = 9
-	# Prompt the transcribers to open a TextGrid file. 
+
+	# Check to see if the procedure is to create a calibration textgrid or to loop through an existing 
+	# calibration textgrid to calibrate the transcriptions.
+	if procedure$ == "create_textgrid"
+		# Prompt the transcribers to open a transcription TextGrid file. 
+		.transcriptionFilePathname$ = chooseReadFile$: "Open a transcription TextGrid file from the Transcription/TranscriptionTextGrids directory"
+		if .transcriptionFilePathname$ <> ""
+			object_num = Read from file: .transcriptionFilePathname$
+		endif
+		# Check to make sure that it was a TextGrid file. 
+		.transcriptionObjectName$ = selected$()
+		.transcriptionFileType$ = extractWord$ (.transcriptionObjectName$, "")
+		if .transcriptionFileType$ <> "TextGrid"
+			exitScript: "File '.transcriptionFilePathname$' was not a TextGrid file."
+		endif
+		# Determine the basename of the TextGrid Object that was read in.
+		.calibrationObjectName$ = selected$()
+		.calibrationBasename$ = extractWord$ (.calibrationObjectName$, " ")
+		# Replace the "trans" with "calib" to differentiate.
+		.calibrationBasename$ = .calibrationBasename$ - "trans" + "calib"
+
+		# Rename the calibration object.
+		selectObject(.calibrationObjectName$)
+		Rename: .calibrationBasename$
+		.calibrationObjectName$ = selected$()
+
+		# Set the file pathname to which the object should be saved. 
+		.calibrationFilePathname$ = calibration_filepaths.calibTextGridsDirectory$ + .calibrationBasename$ + ".TextGrid"
+
+# appendInfoLine(".transcriptionFilePathname$: ", .transcriptionFilePathname$)
+# appendInfoLine(".calibrationObjectName$: ", .calibrationObjectName$)
+# appendInfoLine(".calibrationBasename$: ", .calibrationBasename$)
+# appendInfoLine(".calibrationFilePathname$: ", .calibrationFilePathname$)
+
+endproc
+
+procedure startup_calibration_file()
+# appendInfoLine("")
+# appendInfoLine("------ startup_calibration_file()")
+
+	# For now, just specify here.  This makes for a potentially brittle specification for .experimental_ID$ below.
+	.task$ = "NonWordRep"
+	lengthPID = 9
+
+	# Prompt the transcribers to open a calibration TextGrid file. 
 	.calibrationFilePathname$ = chooseReadFile$: "Open a calibration TextGrid file from the Transcription/CalibrationTextGrids directory"
 	if .calibrationFilePathname$ <> ""
 		object_num = Read from file: .calibrationFilePathname$
@@ -87,15 +138,15 @@ procedure startup_calibration_file()
 	.calibrationObjectName$ = selected$()
 	.calibrationFileType$ = extractWord$ (.calibrationObjectName$, "")
 	if .calibrationFileType$ <> "TextGrid"
-		exitScript: "File '.calibrationFileType$' was not a TextGrid file."
+		exitScript: "File '.calibrationFilePathname$' was not a TextGrid file."
 	endif
-	# Determine the experimental ID from the name of the TextGrid Object that was read in.
+	# Determine the basename of the TextGrid Object that was read in.
 	.calibrationObjectName$ = selected$()
 	.calibrationBasename$ = extractWord$ (.calibrationObjectName$, " ")
+
+	# Determine the experimental ID from the name of the TextGrid Object that was read in.
 	# Following line is brittle, and might should be changed when we generalize.
 	.experimental_ID$ = left$(.calibrationBasename$, length(.task$)+length("_")+lengthPID)
-# appendInfoLine(".calibrationObjectName$: ", .calibrationObjectName$)
-# appendInfoLine(".calibrationBasename$: ", .calibrationBasename$)
 
 	# Open the associated audio file.
 	audio_pathname$ = calibration_filepaths.audio_dir$ + .experimental_ID$ + ".WAV"
