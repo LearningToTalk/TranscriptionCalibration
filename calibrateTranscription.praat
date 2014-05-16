@@ -28,6 +28,9 @@ audioBasename$ = startup_calibration_file.audioBasename$
 segmObject$ = startup_calibration_file.segmObjectName$
 segmBasename$ = startup_calibration_file.segmBasename$
 
+appendInfoLine("----------- calibrateTranscription.praat")
+appendInfoLine("soundObject$ : ", soundObject$)
+
 # Some other values that maybe don't belong here?
 resolution_tier = 1
 tr1_seg1_tier = 3
@@ -92,7 +95,8 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 		.no_notes = length(.notes$) == 0
 		if !.no_notes
 			selectObject(calibrationObject$)
-			Insert point: resolution_tier, calib_tag_time, .notes$
+#			Insert point: resolution_tier, calib_tag_time, .notes$
+			Set point text: resolution_tier, current_point, .notes$
 			Save as text file: startup_calibration_file.calibrationFilePathname$
 		endif
 
@@ -101,17 +105,22 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 		endif
 	endif
 
+	# [QUIT]
+	if (calib_node$ == calib_node_quit$)
+		current_point = num_points + 1
+		appendInfoLine("You have chosen to quite checking.")
+	endif
 
 	# [EXTRACT AND SAVE SNIPPET]
 #### Issue: As soon as Mary or Pat has the time, this maybe should be rewritten as a call to a proc  
 ####    that is stored in a separate file, for use in other scripts such as the segmentation script.
 	if calib_node$ == calib_node_extract_snippet$
 		# Extract and save a snippet only if the extract_snippet box was checked.
-		@selectObject(soundObject$)
+		selectObject(soundObject$)
 		Extract part: segmentXMin, segmentXMax, "rectangular", 1, "yes"
-		@selectObject(calibrationObject$)
+		selectObject(calibrationObject$)
 		Extract part: segmentXMin, segmentXMax, "yes"
-		@selectObject(segmObject$)
+		selectObject(segmObject$)
 		Extract part: segmentXMin, segmentXMax, "yes"
 		# The extracted snippet collection will be named by the basename for the calibration
 		# TextGrid plus the orthographic form for the nonword plus the calibration point number. 
