@@ -38,7 +38,7 @@ procedure startup_location()
 	else
 		# If the segmenter has entered a location and wishes to continue
 		#  to the next step of the start-up procedure (button = 2),
-		# then set the value of the .initials$ variable
+		# then set the value of the .location$ variable
 		.location$ = location$
 		# Use the value of the '.location$' variable to set up the 'drive$' variables.
 		if (.location$ == "WaismanLab")
@@ -64,17 +64,26 @@ procedure startup_location()
 endproc
 
 procedure calibration_filepaths()
-	.audio_dir$ = startup_location.audio_drive$ + "/DataAnalysis/NonWordRep/TimePoint1/Recordings/"
-	.segmentation_dir$ = startup_location.drive$ + "DataAnalysis/NonWordRep/TimePoint1/Segmentation/TranscriptionReady/"
-	.calibSnippetDirectory$ = startup_location.drive$ + "DataAnalysis/NonWordRep/TimePoint1/Transcription/ExtractedSnippets/"
-	.transTextGridsDirectory$ = startup_location.drive$ + "DataAnalysis/NonWordRep/TimePoint1/Transcription/TranscriptionTextGrids/"
-	.calibTextGridsDirectory$ = startup_location.drive$ + "DataAnalysis/NonWordRep/TimePoint1/Transcription/CalibrationTextGrids/"
-# appendInfoLine(".audio_dir$: ", .audio_dir$)
-# appendInfoLine(".segmentation_dir$: ", .segmentation_dir$)
-# appendInfoLine(".calibSnippetDirectory$: ", .calibSnippetDirectory$)
-# appendInfoLine("------ calibration_filepaths()")
-# appendInfoLine(".transTextGridsDirectory$: ", .transTextGridsDirectory$)
-# appendInfoLine(".calibTextGridsDirectory$: ", .calibTextGridsDirectory$)
+	# For now, just specify here.  
+	.task$ = "NonWordRep"
+	.testwave$ = "TimePoint1"
+
+	.data_dir$ = "/DataAnalysis/" + .task$ + "/" + .testwave$ + "/"
+	.audio_dir$ = startup_location.audio_drive$ + .data_dir$ + "Recordings/"
+	.segmentation_dir$ = startup_location.drive$ + .data_dir$ + "Segmentation/TranscriptionReady/"
+	.wordList_dir$ = startup_location.drive$ + .data_dir$ + "WordLists/"
+	.calibSnippetDirectory$ = startup_location.drive$ + .data_dir$ + "Transcription/ExtractedSnippets/"
+	.transTextGridsDirectory$ = startup_location.drive$ + .data_dir$ + "Transcription/TranscriptionTextGrids/"
+	.calibTextGridsDirectory$ = startup_location.drive$ + .data_dir$ + "Transcription/CalibrationTextGrids/"
+
+
+appendInfoLine(".audio_dir$: ", .audio_dir$)
+appendInfoLine(".segmentation_dir$: ", .segmentation_dir$)
+appendInfoLine(".wordList_dir$: ", .wordList_dir$)
+appendInfoLine(".calibSnippetDirectory$: ", .calibSnippetDirectory$)
+appendInfoLine("------ calibration_filepaths()")
+appendInfoLine(".transTextGridsDirectory$: ", .transTextGridsDirectory$)
+appendInfoLine(".calibTextGridsDirectory$: ", .calibTextGridsDirectory$)
 endproc
 
 # [NODE] Calibration textgrid specific start-up procedures.
@@ -82,9 +91,10 @@ procedure startup_calibration_textgrid_file()
 appendInfoLine("")
 appendInfoLine("------ startup_calibration_textgrid_file()")
 
-	# For now, just specify here.  This makes for a potentially brittle specification for .experimental_ID$ below.
+	# For now, just specify the following variables here.  
 	.task$ = "NonWordRep"
 	lengthPID = 9
+	# This makes for a potentially brittle specification for .experimental_ID$ below.
 
 	# Check to see if the procedure is to create a calibration textgrid or to loop through an existing 
 	# calibration textgrid to calibrate the transcriptions.
@@ -114,6 +124,7 @@ appendInfoLine("------ startup_calibration_textgrid_file()")
 		# Set the file pathname to which the object should be saved. 
 		.calibrationFilePathname$ = calibration_filepaths.calibTextGridsDirectory$ + .calibrationBasename$ + ".TextGrid"
 
+	endif
 # appendInfoLine(".transcriptionFilePathname$: ", .transcriptionFilePathname$)
 # appendInfoLine(".calibrationObjectName$: ", .calibrationObjectName$)
 # appendInfoLine(".calibrationBasename$: ", .calibrationBasename$)
@@ -125,9 +136,16 @@ procedure startup_calibration_file()
 # appendInfoLine("")
 # appendInfoLine("------ startup_calibration_file()")
 
-	# For now, just specify here.  This makes for a potentially brittle specification for .experimental_ID$ below.
+	# For now, just specify the following variables here.  
+	tr1_seg1_tier = 3
+	frameWB_tier = 7
+	calibNotes_tier = 8
+	# These are also in calibrateTranscription.praat, because Mary isn't sure where they should go.  
+
+	# For now, just specify here.  
 	.task$ = "NonWordRep"
 	lengthPID = 9
+	# The above makes for a potentially brittle specification for .experimental_ID$ below.
 
 	# Prompt the transcribers to open a calibration TextGrid file. 
 	.calibrationFilePathname$ = chooseReadFile$: "Open a calibration TextGrid file from the Transcription/CalibrationTextGrids directory"
@@ -147,6 +165,29 @@ procedure startup_calibration_file()
 	# Determine the experimental ID from the name of the TextGrid Object that was read in.
 	# Following line is brittle, and might should be changed when we generalize.
 	.experimental_ID$ = left$(.calibrationBasename$, length(.task$)+length("_")+lengthPID)
+
+	# Check to see whether the frameWB ("frame WorldBet") tier and calibNotes tier have been created yet.
+	selectObject(.calibrationObjectName$)
+	num_tiers = Get number of tiers
+	if (num_tiers < calibNotes_tier)
+		make_tiers_flag = 1
+	else
+		frameWB_tier_name$ = Get tier name: frameWB_tier
+		calibNotes_tier_name$ = Get tier name: calibNotes_tier
+		if (frameWB_tier_name$ == "frameWB") and (calibNotes_tier_name$ == "calibNotes")
+			make_tiers_flag = 0
+		else
+			make_tiers_flag = 1
+		endif
+	endif
+
+	# If they haven't been created, create them.
+	if (make_tiers_flag)
+		selectObject(.calibrationObjectName$)
+		Duplicate tier: tr1_seg1_tier, frameWB_tier, "frameWB"
+		Insert point tier: calibNotes_tier, "calibNotes"
+		Replace interval text: frameWB_tier, 0, 0, ".*", "", "Regular Expressions"
+	endif
 
 	# Open the associated audio file.
 	audio_pathname$ = calibration_filepaths.audio_dir$ + .experimental_ID$ + ".WAV"
@@ -181,5 +222,22 @@ procedure startup_calibration_file()
 	.segmBasename$ = .segmFilename$ - ".TextGrid"
 # appendInfoLine(".segmObjectName$: ", .segmObjectName$)
 # appendInfoLine(".segmBasename$: ", .segmBasename$)
+
+	# Open the associated wordlist Table file.
+	Create Strings as file list: "fileList", calibration_filepaths.wordList_dir$ + .experimental_ID$ + "*"
+
+	.wordListFilename$ = Get string: 1
+	selectObject("Strings fileList")
+	Remove
+	wordList_pathname$ = calibration_filepaths.wordList_dir$ + .wordListFilename$
+	if (fileReadable(wordList_pathname$))
+		Read from file: wordList_pathname$
+	else
+		exitScript: "Error in reading file 'wordList_pathname$' "
+	endif
+	.wordListObjectName$ = selected$()
+	.wordListBasename$ = .wordListFilename$ - ".txt"
+appendInfoLine(".wordListObjectName$: ", .wordListObjectName$)
+appendInfoLine(".wordListBasename$: ", .wordListBasename$)
 
 endproc
