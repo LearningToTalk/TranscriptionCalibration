@@ -27,14 +27,29 @@ soundObject$ = startup_calibration_file.soundObjectName$
 audioBasename$ = startup_calibration_file.audioBasename$
 segmObject$ = startup_calibration_file.segmObjectName$
 segmBasename$ = startup_calibration_file.segmBasename$
+wordListObject$ = startup_calibration_file.wordListObjectName$
+wordListBasename$ = startup_calibration_file.wordListBasename$
 
 appendInfoLine("----------- calibrateTranscription.praat")
 appendInfoLine("soundObject$ : ", soundObject$)
 
-# Some other values that maybe don't belong here?
+# Some other values that maybe don't belong here?    
+# 1) tier numbers from the calib TextGrid Object
 resolution_tier = 1
 tr1_seg1_tier = 3
+tr1_seg2_tier = 4
+prosody_tier =5
+transNotes_tier = 6
+frameWB_tier = 7
+calibNotes_tier = 8
+
+# 2) tier numbers from the segm TextGrid Object
 word_tier = 2
+
+# 3) Some other constants.
+changed_seg1$ = "Target1Seg"
+changed_seg2$ = "Target2Seg"
+changed_prosody$ = "Prosody"
 
 # Open the segmObject$ in another Edit window.
 selectObject(segmObject$)
@@ -71,34 +86,85 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 	trial_num = Get interval at time: word_tier, calib_tag_time
 	word$ = Get label of interval: word_tier, trial_num
 
+	# Get the associated worldbet transcription from the wordlist Table object. 
+	selectObject(wordListObject$)
+	row_number = Search column: "Orthography", word$
+	current_formWB$ = Get value: row_number, "WorldBet"
+	selectObject(calibrationObject$)
+	Set interval text: frameWB_tier, segm_num, current_formWB$
+
+
 	# Zoom to the current production.
 	editor 'calibrationObject$'
 		Zoom: segmentXMin - 0.25, segmentXMax + 0.25
 	endeditor
 
-##### Following should probably become a procedure  that is called at this point in the script? 
-	# Invite the transcribers to examine the production and make a note. 
+##### Following should probably become a procedure  that is called at this point in the script. 
+	# Invite the transcribers to examine the production and make any changes. 
 	beginPause("Examine transcription(s)")
 
-		comment("Enter a note about the transcription(s) of this production below: ")
+		comment("Click below to indicate any changes you plan to make:")
+		boolean("Change target1seg", 0)
+		text("newTarget1Seg", "")
+		boolean("Change target2seg", 0)
+		text("newTarget2Seg", "")
+		boolean("Edit prosody transcription", 0)
+
+		comment("Click below if you plan to make notes by editing the transcription in the frameWB tier:")
+		boolean("Edit frameWB", 0)
+		comment(" [If you do not click here, the frameWB transcription will simply be deleted.]")
+
+		comment("Enter any other notes about the transcription of this production below: ")
 		text("transcription_notes", "")
 
 		comment("Should an audio and textgrid snippet be extracted for this trial?")
 		boolean("Extract snippet", 0)
 		
-	button = endPause("Quit (without doing anything)", "Save this note and/or snippet!", 2, 1)
+	button = endPause("Quit without doing anything.", "Save and go to next token.", 2, 1)
 
 	if button == 1
 		calib_node$ = calib_node_quit$
 	else
+		.changed_tiers$ = ""
+		changed_transcription = 0
+
+		if (change_target1seg)
+			Set interval text: tr1_seg1_tier, segm_num, newTarget1Seg$
+			.changed_tiers$ = .changed_tiers$ + "; Target1Seg"
+			changed_transcription = 1
+		endif
+
+		if (change_target2seg)
+			Set interval text: tr1_seg2_tier, segm_num, newTarget2Seg$
+			.changed_tiers$ = .changed_tiers$ + "; Target2Seg"
+			changed_transcription = 1
+		endif
+
+		if (edit_prosody_transcription)
+			.changed_tiers$ = .changed_tiers$ + "; Prosody"
+			changed_transcription = 1
+		endif
+
+		if (changed_transcription)
+			.changed_tiers$ = "changes" + .changed_tiers$
+			Set point text: resolution_tier, current_point, .changed_tiers$
+		else
+			Set point text: resolution_tier, current_point, "no changes"
+		endif
+
+		if (!edit_frameWB)
+			Set interval text: frameWB_tier, segm_num, ""
+		endif
+
 		.notes$ = transcription_notes$
 		.no_notes = length(.notes$) == 0
 		if !.no_notes
 			selectObject(calibrationObject$)
-#			Insert point: resolution_tier, calib_tag_time, .notes$
-			Set point text: resolution_tier, current_point, .notes$
-			Save as text file: startup_calibration_file.calibrationFilePathname$
+			Insert point: calibNotes_tier, calib_tag_time, .notes$
+			need_to_save = 1
 		endif
+
+		Save as text file: startup_calibration_file.calibrationFilePathname$
 
 		if extract_snippet
 			calib_node$ = calib_node_extract_snippet$
