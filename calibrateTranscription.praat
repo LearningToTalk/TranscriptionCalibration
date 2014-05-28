@@ -87,12 +87,17 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 	word$ = Get label of interval: word_tier, trial_num
 
 	# Get the associated worldbet transcription from the wordlist Table object. 
-	selectObject(wordListObject$)
-	row_number = Search column: "Orthography", word$
-	current_formWB$ = Get value: row_number, "WorldBet"
 	selectObject(calibrationObject$)
-	Set interval text: frameWB_tier, segm_num, current_formWB$
-
+	current_formWB$ = Get label of interval: frameWB_tier, segm_num
+	if (current_formWB$ == "")
+		selectObject(wordListObject$)
+		row_number = Search column: "Orthography", word$
+		current_formWB$ = Get value: row_number, "WorldBet"
+		selectObject(calibrationObject$)
+		Set interval text: frameWB_tier, segm_num, current_formWB$
+	else
+		formWBalready_provided = 1
+	endif
 
 	# Zoom to the current production.
 	editor 'calibrationObject$'
@@ -152,7 +157,7 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 			Set point text: resolution_tier, current_point, "no changes"
 		endif
 
-		if (!edit_frameWB)
+		if (!edit_frameWB) and (!formWBalready_provided)
 			Set interval text: frameWB_tier, segm_num, ""
 		endif
 
