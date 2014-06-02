@@ -95,6 +95,7 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 		current_formWB$ = Get value: row_number, "WorldBet"
 		selectObject(calibrationObject$)
 		Set interval text: frameWB_tier, segm_num, current_formWB$
+		formWBalready_provided = 0
 	else
 		formWBalready_provided = 1
 	endif
@@ -115,9 +116,9 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 		text("newTarget2Seg", "")
 		boolean("Edit prosody transcription", 0)
 
-		comment("Click below if you plan to make notes by editing the transcription in the frameWB tier:")
-		boolean("Edit frameWB", 0)
+		comment("Click below if you plan to edit the transcription in the frameWB tier:")
 		comment(" [If you do not click here, the frameWB transcription will simply be deleted.]")
+		boolean("Edit frameWB", 0)
 
 		comment("Enter any other notes about the transcription of this production below: ")
 		text("transcription_notes", "")
@@ -166,7 +167,6 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 		if !.no_notes
 			selectObject(calibrationObject$)
 			Insert point: calibNotes_tier, calib_tag_time, .notes$
-			need_to_save = 1
 		endif
 
 		Save as text file: startup_calibration_file.calibrationFilePathname$
