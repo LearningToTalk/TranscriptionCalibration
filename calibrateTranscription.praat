@@ -43,6 +43,16 @@ transNotes_tier = 6
 frameWB_tier = 7
 calibNotes_tier = 8
 
+# Check to see if it is an inter-transcriber comparison.
+two_transcriptions = right$(calibrationBasename$, length("interTrans")) == "interTrans"
+# If it is, you'll need these:
+trans1_seg1_tier = 9
+trans1_seg2_tier = 10
+trans1_prosody_tier =11
+trans2_seg1_tier = 13
+trans2_seg2_tier = 14
+trans2_prosody_tier =15
+
 # 2) tier numbers from the segm TextGrid Object
 word_tier = 2
 
@@ -90,9 +100,14 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 	selectObject(calibrationObject$)
 	current_formWB$ = Get label of interval: frameWB_tier, segm_num
 	if (current_formWB$ == "")
-		selectObject(wordListObject$)
-		row_number = Search column: "Orthography", word$
-		current_formWB$ = Get value: row_number, "WorldBet"
+		# Adjust for "yougoyn" case.
+		if (word$=="yougoyn")
+			current_formWB$ = "jugoit"
+		else
+			selectObject(wordListObject$)
+			row_number = Search column: "Orthography", word$
+			current_formWB$ = Get value: row_number, "WorldBet"
+		endif
 		selectObject(calibrationObject$)
 		Set interval text: frameWB_tier, segm_num, current_formWB$
 		formWBalready_provided = 0
@@ -109,11 +124,28 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 	# Invite the transcribers to examine the production and make any changes. 
 	beginPause("Examine transcription(s)")
 
-		comment("Click below to indicate any changes you plan to make:")
-		boolean("Change target1seg", 0)
+		comment("Click below to indicate any changes you plan to make to the Target1Seg tier.")
+		# If need to choose between two transcriptions.
+		if (two_transcriptions)
+			boolean("Choose transcription 1 for target1seg", 0)
+			boolean("Choose transcription 2 for target1seg", 0)
+		endif
+		boolean("Change target1seg to the following", 0)
 		text("newTarget1Seg", "")
-		boolean("Change target2seg", 0)
+
+		comment("Click below to indicate any changes you plan to make to the Target2Seg tier.")
+		if (two_transcriptions)
+			boolean("Choose transcription 1 for target2seg", 0)
+			boolean("Choose transcription 2 for target2seg", 0)
+		endif
+		boolean("Change target2seg to the following", 0)
 		text("newTarget2Seg", "")
+
+		comment("Click below to indicate any changes you plan to make to the Prosody tier.")
+		if (two_transcriptions)
+			boolean("Choose transcription 1 for prosody", 0)
+			boolean("Choose transcription 2 for prosody", 0)
+		endif
 		boolean("Edit prosody transcription", 0)
 
 		comment("Click below if you plan to edit the transcription in the frameWB tier:")
@@ -134,13 +166,41 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 		.changed_tiers$ = ""
 		changed_transcription = 0
 
-		if (change_target1seg)
+		if (two_transcriptions)
+			if (choose_transcription_1_for_target1seg)
+				newTarget1Seg$ = Get label of interval: trans1_seg1_tier, segm_num
+				change_target1seg_to_the_following = 1
+			elsif (choose_transcription_2_for_target1seg)
+				newTarget1Seg$ = Get label of interval: trans2_seg1_tier, segm_num
+				change_target1seg_to_the_following = 1
+			endif
+
+			if (choose_transcription_1_for_target2seg)
+				newTarget2Seg$ = Get label of interval: trans1_seg2_tier, segm_num
+				change_target2seg_to_the_following = 1
+			elsif (choose_transcription_2_for_target2seg)
+				newTarget2Seg$ = Get label of interval: trans2_seg2_tier, segm_num
+				change_target2seg_to_the_following = 1
+			endif
+			if (choose_transcription_1_for_prosody)
+				prosodyTag$ = Get label of interval: trans1_prosody_tier, segm_num
+				Set interval text: prosody_tier, segm_num, prosodyTag$
+				edit_prosody_transcription = 1
+			elsif (choose_transcription_2_for_prosody)
+				prosodyTag$ = Get label of interval: trans2_prosody_tier, segm_num
+				Set interval text: prosody_tier, segm_num, prosodyTag$
+				edit_prosody_transcription = 1
+			endif
+		endif
+
+		 if (change_target1seg_to_the_following)
 			Set interval text: tr1_seg1_tier, segm_num, newTarget1Seg$
 			.changed_tiers$ = .changed_tiers$ + "; Target1Seg"
 			changed_transcription = 1
 		endif
 
-		if (change_target2seg)
+
+		if (change_target2seg_to_the_following)
 			Set interval text: tr1_seg2_tier, segm_num, newTarget2Seg$
 			.changed_tiers$ = .changed_tiers$ + "; Target2Seg"
 			changed_transcription = 1
