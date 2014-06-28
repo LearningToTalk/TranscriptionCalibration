@@ -158,11 +158,11 @@ while (current_point < (num_points + 1)) and (calib_node$ != calib_node_quit$)
 		comment("Should an audio and textgrid snippet be extracted for this trial?")
 		boolean("Extract snippet", 0)
 		
-	button = endPause("Quit without doing anything.", "Save and go to next token.", 2, 1)
+	button = endPause("Quit without doing anything.", "Save and go to next token.", "Skip to next token", 2, 1)
 
 	if button == 1
 		calib_node$ = calib_node_quit$
-	else
+	elsif button == 2
 		.changed_tiers$ = ""
 		changed_transcription = 0
 
